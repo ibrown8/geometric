@@ -1,7 +1,7 @@
-use num_traits::{Num, NumOps, float::Float};
+use num_traits::{Num, float::Float};
 use core::ops::{Add, Sub, Mul, Div, AddAssign, MulAssign, DivAssign, SubAssign};
 use core::convert::From;
-
+use core::fmt::{Debug, Formatter, Result};
 //Dot product
 pub trait Dot<RHS> {
     type Output;
@@ -91,12 +91,12 @@ macro_rules! impl_bin_op_assign_vector2 {
     }
 }
 #[inline]
-pub fn lerp<X, T>(v0 : X<T>, v1 : X<T>, t : T) -> X<T> 
+pub fn lerp<X, T>(v0 : X, v1 : X, t : T) -> X 
     where 
         T: Float + Copy,
-        X: Add<Output = Self>, Mul<T, Output = Self>
+        X: Add<Output = X> + Mul<T, Output = X>
 {
-    (T::one() - t) * v0 + t * v1
+      v0 * (T::one() - t) + v1 * t
 }
 impl_bin_op_vector2!{Add, add}
 impl_bin_op_vector2!{Sub, sub}
@@ -123,6 +123,15 @@ impl <T: Num + Copy> Wedge<Vec2<T>> for Vec2<T> {
     }
 }
 
+impl<T: Num + Copy + Debug> Debug for Vec2<T> {
+    fn fmt(&self, f : &mut Formatter<'_>) -> Result {
+        f.debug_struct("Vec2")
+            .field("x", &self.x)
+            .field("y", &self.y)
+            .finish()
+    }
+}
+ 
 pub struct Rotor2<T: Copy + Num> {
     pub scalar : T,
     pub pseudo : T
@@ -172,13 +181,6 @@ impl <T: Num + Copy> Geometric<Rotor2<T>> for Rotor2<T> {
     }
 }
 
-/* impl Rotor2<f32> {
-    //Euler identity for Bivectors
-    pub fn from_angle(theta : f32) -> Self {
-        let (scalar, pseudo) = theta.sin_cos();
-        Self {scalar, pseudo}
-    }
-} */
 impl<T: Float> Rotor2<T> {
     //Euler identity for Bivectors
     #[inline]
@@ -189,11 +191,11 @@ impl<T: Float> Rotor2<T> {
 }
 impl<T: Float> Vec2<T> {
     #[inline]
-    pub fn len_squared(&self) -> Self {
-        self.dot(self);
+    pub fn len_squared(&self) -> T {
+        self.dot(self)
     }
     #[inline]
-    pub fn len(&self) {
+    pub fn len(&self) -> T {
         self.x.hypot(self.y)
     }
     #[inline]
@@ -288,6 +290,15 @@ impl_bin_op_assign_vector3!{SubAssign, sub_assign}
 impl_bin_op_assign_vector3!{MulAssign, mul_assign}
 impl_bin_op_assign_vector3!{DivAssign, div_assign}
 
+impl<T: Num + Copy + Debug> Debug for Vec3<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("Vec3")
+            .field("x", &self.x)
+            .field("y", &self.y)
+            .field("z", &self.z)
+            .finish()
+    }
+}
 //Wedge product
 impl <T: Num + Copy> Dot<Vec3<T>> for Vec3<T> {
     type Output = T;
@@ -296,26 +307,13 @@ impl <T: Num + Copy> Dot<Vec3<T>> for Vec3<T> {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 }
-/* impl Vec3<f32> {
-    #[inline]
-    pub fn len_squared(&self) -> f32 {
-        self.dot(self)
-    }
-    pub fn len(&self) -> f32 {
-        self.len_squared().sqrt()
-    }
-    #[inline]
-    pub fn normalize(&self) -> Self {
-        let inv_len = 1.0 / self.len();
-        self * inv_len
-    }
-} */
+
 impl<T: Float> Vec3<T> {
     #[inline]
-    pub fn len_squared(&self) -> f32 {
+    pub fn len_squared(&self) -> T {
         self.dot(self)
     }
-    pub fn len(&self) -> f32 {
+    pub fn len(&self) -> T {
         self.len_squared().sqrt()
     }
     #[inline]
@@ -476,7 +474,7 @@ impl Rotor3<f32> {
             }
         }
     }
-    /* pub fn to_matrix4(&self) -> Matrix4<f32, 4> {
+   /* pub fn to_matrix4(&self) -> Matrix4<f32> {
         let w = self.scalar;
         let x = self.bivec.yz;
         let y = self.bivec.zx;
